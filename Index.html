@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>BIOAXEL CM Service – ระบบแจ้งซ่อม</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<style>
+/* ── Reset & Variables ── */
+:root {
+  --bio-dark:     #1a4731;
+  --bio-700:      #1e6b46;
+  --bio-600:      #2d8a5a;
+  --bio-500:      #3aaa6e;
+  --bio-400:      #52c785;
+  --bio-200:      #a8e8c4;
+  --bio-100:      #d4f4e3;
+  --bio-50:       #edfaf3;
+  --acc-400:      #a3e635;
+  --white:        #ffffff;
+  --gray-50:      #f8fafc;
+  --gray-100:     #f1f5f9;
+  --gray-200:     #e2e8f0;
+  --gray-300:     #cbd5e1;
+  --gray-400:     #94a3b8;
+  --gray-500:     #64748b;
+  --gray-700:     #334155;
+  --gray-900:     #0f172a;
+  --shadow-sm:    0 1px 4px rgba(0,0,0,.07);
+  --shadow-md:    0 4px 14px rgba(0,0,0,.09);
+  --shadow-lg:    0 10px 32px rgba(0,0,0,.12);
+  --shadow-green: 0 6px 24px rgba(42,138,90,.28);
+  --radius:       14px;
+  --radius-sm:    9px;
+  --trans:        .2s cubic-bezier(.4,0,.2,1);
+  --header-h:     58px;
+  --sidebar-w:    220px;
+  --bottom-h:     64px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-700);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Layout Shell ── */
+.shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── Header ── */
+.header {
+  height: var(--header-h);
+  background: linear-gradient(135deg, var(--bio-dark) 0%, var(--bio-600) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  box-shadow: 0 2px 16px rgba(26,71,49,.4);
+}
+.header-brand { display: flex; align-items: center; gap: 10px; }
+.brand-logo {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,.15);
+  border: 1.5px solid rgba(255,255,255,.25);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 900;
+  color: var(--acc-400);
+  line-height: 1.1; text-align: center; flex-shrink: 0;
+}
+.brand-name  { font-size: 15px; font-weight: 800; letter-spacing: .5px; line-height: 1.1; }
+.brand-sub   { font-size: 10px; opacity: .7; font-weight: 400; }
+.header-clock { font-size: 12px; opacity: .8; white-space: nowrap; }
+
+/* ── Body Area (sidebar + main) ── */
+.body-area {
+  display: flex;
+  margin-top: var(--header-h);
+  min-height: calc(100vh - var(--header-h));
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: white;
+  border-right: 1px solid var(--gray-200);
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  display: none; /* hidden on mobile */
+  flex-direction: column;
+  padding: 14px 0 20px;
+  z-index: 100;
+}
+.sb-section {
+  padding: 10px 16px 4px;
+  font-size: 10px; font-weight: 700;
+  color: var(--gray-400);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px;
+  font-size: 14px; font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  border: none; background: none;
+  width: 100%; text-align: left;
+  transition: var(--trans);
+  border-left: 3px solid transparent;
+}
+.sb-item i { width: 18px; text-align: center; font-size: 14px; }
+.sb-item:hover { background: var(--bio-50); color: var(--bio-700); }
+.sb-item.active {
+  background: var(--bio-50);
+  color: var(--bio-700);
+  border-left-color: var(--bio-500);
+  font-weight: 700;
+}
+.sb-divider { height: 1px; background: var(--gray-100); margin: 8px 14px; }
+
+/* ── Main Content ── */
+.main {
+  flex: 1;
+  padding: 20px 16px calc(var(--bottom-h) + 16px);
+  /* mobile: no left offset */
+  min-width: 0;
+}
+
+/* Desktop: sidebar visible, main pushed right */
+@media (min-width: 768px) {
+  .sidebar { display: flex; }
+  .main {
+    margin-left: var(--sidebar-w);
+    padding: 24px 28px 28px;
+  }
+  .bottom-nav { display: none !important; }
+}
+
+/* XL screens (1200px+): full width, wider sidebar, 2-col repair form */
+@media (min-width: 1200px) {
+  :root { --sidebar-w: 240px; }
+  .main-inner { max-width: 100%; }
+  .main { padding: 28px 40px 36px; }
+
+  /* Repair form: 2 columns side by side */
+  .repair-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+.main-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Large screen: ขยายเต็มพื้นที่ */
+@media (min-width: 1200px) {
+  .main-inner {
+    max-width: 100%;
+  }
+  /* Sidebar กว้างขึ้นบน large screen */
+  .sidebar {
+    width: 240px;
+  }
+  .main {
+    margin-left: 240px;
+    padding: 28px 36px 36px;
+  }
+  /* Form layout: 2 column บน large screen */
+  .repair-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  /* Dashboard charts: 4 stat + 2 chart side by side กว้างขึ้น */
+  .stats-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .chart-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── Bottom Nav (mobile) ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--bottom-h);
+  background: white;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  z-index: 200;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.07);
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; padding: 6px 4px;
+  border: none; background: none;
+  color: var(--gray-400); font-size: 10px; font-weight: 600;
+  cursor: pointer; position: relative;
+  transition: var(--trans);
+  font-family: 'Sarabun', sans-serif;
+}
+.nav-item i { font-size: 19px; }
+.nav-item.active { color: var(--bio-600); }
+.nav-item.active::after {
+  content: '';
+  position: absolute; top: 0; left: 20%; right: 20%;
+  height: 2.5px;
+  background: var(--bio-500);
+  border-radius: 0 0 4px 4px;
+}
+.nav-item:active { transform: scale(.93); }
+
+/* ── Pages ── */
+.page { display: none; animation: fadeIn .2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+.page-header { margin-bottom: 18px; }
+.page-title  { font-size: 20px; font-weight: 800; color: var(--gray-900); }
+.page-sub    { font-size: 13px; color: var(--gray-400); margin-top: 2px; }
+
+/* ── Cards ── */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.card-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--bio-700);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--bio-50);
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── BIOAXEL Strip ── */
+.bio-strip {
+  background: linear-gradient(90deg, var(--bio-dark), var(--bio-600));
+  color: white; border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 14px;
+}
+.bio-strip-logo { font-size: 12px; font-weight: 900; color: var(--acc-400); min-width: 36px; text-align: center; line-height: 1.2; }
+.bio-strip-title { font-size: 14px; font-weight: 700; }
+.bio-strip-sub   { font-size: 11px; opacity: .7; margin-top: 1px; }
+.bio-strip-models { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.bio-strip-models span { background: rgba(255,255,255,.15); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+
+/* ── Model Grid ── */
+.model-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
+@media (min-width: 480px) { .model-grid { grid-template-columns: repeat(4,1fr); } }
+.model-chip {
+  background: var(--bio-50); border: 1.5px solid var(--bio-200);
+  border-radius: var(--radius-sm); padding: 10px 6px;
+  text-align: center; cursor: pointer; transition: var(--trans);
+}
+.model-chip:hover, .model-chip.selected { background: var(--bio-600); border-color: var(--bio-600); color: white; }
+.chip-model { font-size: 13px; font-weight: 800; color: var(--bio-700); }
+.chip-cap   { font-size: 10px; color: var(--bio-500); font-weight: 600; margin-top: 2px; }
+.model-chip:hover .chip-model, .model-chip.selected .chip-model { color: white; }
+.model-chip:hover .chip-cap,   .model-chip.selected .chip-cap   { color: rgba(255,255,255,.8); }
+
+/* ── Forms ── */
+.form-group { margin-bottom: 13px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 5px; }
+.form-label .req { color: #ef4444; margin-left: 2px; }
+.form-control {
+  width: 100%; padding: 10px 13px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-family: 'Sarabun', sans-serif;
+  font-size: 14px; color: var(--gray-900);
+  background: white; outline: none;
+  transition: var(--trans);
+  box-shadow: var(--shadow-sm);
+  -webkit-appearance: none; appearance: none;
+}
+.form-control:focus { border-color: var(--bio-400); box-shadow: 0 0 0 3px rgba(58,170,110,.14); }
+.form-control:disabled { background: var(--gray-50); color: var(--gray-500); }
+select.form-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+textarea.form-control { resize: vertical; min-height: 80px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+/* ── Info Box ── */
+.info-box {
+  background: var(--bio-50); border: 1px solid var(--bio-200);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-top: 10px;
+}
+.info-box.hidden { display: none; }
+.info-item label { font-size: 11px; color: var(--bio-700); font-weight: 700; display: block; }
+.info-item span  { font-size: 13px; color: var(--gray-900); font-weight: 500; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 22px; border-radius: 50px;
+  font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: var(--trans); border: none; white-space: nowrap;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary { background: linear-gradient(135deg, var(--bio-700), var(--bio-500)); color: white; box-shadow: var(--shadow-green); }
+.btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn-outline { background: white; color: var(--bio-700); border: 1.5px solid var(--bio-200); }
+.btn-outline:hover { background: var(--bio-50); }
+.btn-block { width: 100%; }
+.btn-lg { padding: 13px 28px; font-size: 15px; }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* ── Spinner ── */
+.spinner { width: 17px; height: 17px; border: 2px solid rgba(255,255,255,.35); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast ── */
+.toast-wrap { position: fixed; top: 70px; right: 14px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: 300px; }
+.toast {
+  padding: 11px 15px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 9px;
+  animation: slideIn .28s ease; box-shadow: var(--shadow-lg);
+}
+.toast-success { background: var(--bio-700); color: white; }
+.toast-error   { background: #dc2626; color: white; }
+.toast-info    { background: var(--gray-900); color: white; }
+@keyframes slideIn { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:none; } }
+
+/* ── Badges ── */
+.badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.badge-green  { background: var(--bio-100); color: #065f46; }
+.badge-yellow { background: #fef3c7; color: #92400e; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+.badge-lime   { background: #ecfccb; color: #3f6212; }
+.badge-gray   { background: var(--gray-100); color: var(--gray-700); }
+.badge-blue   { background: #dbeafe; color: #1e40af; }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { background: var(--bio-50); }
+th { text-align: left; padding: 10px 12px; font-weight: 700; color: #065f46; font-size: 12px; border-bottom: 2px solid var(--bio-200); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bio-50); }
+
+/* ── Search Bar ── */
+.search-bar { position: relative; margin-bottom: 12px; }
+.search-bar i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 14px; pointer-events: none; }
+.search-bar .form-control { padding-left: 38px; }
+
+/* ── Stats Row ── */
+.stats-row { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 14px; }
+@media (min-width: 480px) { .stats-row { grid-template-columns: repeat(4,1fr); } }
+.stat-card { background: white; border-radius: var(--radius); padding: 14px 10px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200); text-align: center; }
+.stat-num   { font-size: 28px; font-weight: 800; color: var(--bio-600); line-height: 1; }
+.stat-label { font-size: 10px; color: var(--gray-400); font-weight: 600; margin-top: 4px; }
+
+/* ── Chart Grid ── */
+.chart-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 14px; }
+@media (min-width: 600px) { .chart-grid { grid-template-columns: 1fr 1fr; } }
+.chart-box { background: white; border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200); padding: 16px; }
+.chart-title { font-size: 13px; font-weight: 700; color: var(--gray-700); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+.chart-title i { color: var(--bio-500); }
+#chart-status, #chart-region { width: 100%; height: 220px; }
+
+/* ── KB cards ── */
+.kb-section-label { font-size: 10px; font-weight: 700; color: var(--bio-700); padding: 8px 0 4px; display: flex; align-items: center; gap: 6px; }
+.kb-card {
+  background: white; border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200); border-left: 4px solid var(--bio-400);
+  padding: 13px 14px; margin-bottom: 8px; cursor: pointer; transition: var(--trans);
+}
+.kb-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.kb-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.kb-symptom { font-weight: 700; color: var(--gray-900); font-size: 14px; margin-top: 3px; }
+.kb-action { font-size: 13px; color: #475569; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--gray-200); display: none; line-height: 1.8; }
+.kb-card.open .kb-action { display: block; }
+.kb-card.open .kb-chevron { transform: rotate(180deg); }
+.kb-chevron { transition: transform .2s; flex-shrink: 0; color: var(--bio-400); font-size: 12px; margin-top: 8px; }
+
+/* ── Stock Bar ── */
+.stock-bar { width: 72px; height: 6px; background: var(--gray-200); border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.stock-fill { height: 100%; border-radius: 99px; background: var(--bio-400); transition: width .5s ease; }
+.stock-fill.low      { background: #f59e0b; }
+.stock-fill.critical { background: #ef4444; }
+
+/* ── Empty / Loading ── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--gray-400); }
+.empty-state i { font-size: 36px; margin-bottom: 10px; display: block; color: var(--bio-200); }
+.loading { display: flex; align-items: center; justify-content: center; padding: 36px; color: var(--gray-400); gap: 10px; font-size: 13px; }
+.loading-ring { width: 20px; height: 20px; border: 2px solid var(--gray-200); border-top-color: var(--bio-500); border-radius: 50%; animation: spin .7s linear infinite; }
+
+/* ── Modal ── */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 300; display: flex;
+  align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-bg.open { opacity: 1; pointer-events: all; }
+.modal-sheet {
+  background: white; border-radius: 20px 20px 0 0;
+  padding: 22px 20px 34px; width: 100%; max-width: 500px;
+  max-height: 85vh; overflow-y: auto;
+  transform: translateY(40px); transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.modal-bg.open .modal-sheet { transform: translateY(0); }
+@media (min-width: 560px) {
+  .modal-bg { align-items: center; }
+  .modal-sheet { border-radius: 16px; }
+  .modal-handle { display: none; }
+}
+.modal-handle { width: 38px; height: 4px; background: var(--gray-200); border-radius: 99px; margin: 0 auto 14px; }
+.modal-title  { font-size: 16px; font-weight: 800; color: var(--gray-900); margin-bottom: 12px; }
+
+/* ── Alert banner ── */
+.alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 9px; }
+.alert-warn { background: #fef9c3; border: 1px solid #fde68a; color: #713f12; }
+
+/* ── Progress bars ── */
+.prog-row { margin-bottom: 12px; }
+.prog-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.prog-bar { height: 8px; background: var(--gray-100); border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--bio-500); border-radius: 99px; transition: width .7s ease; }
+
+/* ── Ticket History Cards ── */
+.ticket-card {
+  background: white; border-radius: var(--radius);
+  box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
+  padding: 13px 15px; margin-bottom: 8px;
+  cursor: pointer; transition: var(--trans);
+  border-left: 4px solid var(--gray-200);
+}
+.ticket-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.ticket-card.status-done    { border-left-color: var(--bio-500); }
+.ticket-card.status-progress{ border-left-color: #f59e0b; }
+.ticket-card.status-wait    { border-left-color: #94a3b8; }
+.ticket-card.status-parts   { border-left-color: #ef4444; }
+.ticket-header { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.ticket-id   { font-size:11px; font-weight:700; color:var(--bio-700); font-family:monospace; }
+.ticket-date { font-size:11px; color:var(--gray-400); }
+.ticket-issue{ font-size:14px; font-weight:600; color:var(--gray-900); margin:4px 0 6px; }
+.ticket-meta { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+
+/* ── Ticket Detail in Modal ── */
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+@media(max-width:480px){ .detail-grid{ grid-template-columns:1fr; } }
+.detail-item label { font-size:11px; color:var(--bio-700); font-weight:700; display:block; margin-bottom:2px; }
+.detail-item span  { font-size:13px; color:var(--gray-900); }
+.detail-full { margin-bottom:12px; }
+.detail-full label { font-size:11px; color:var(--bio-700); font-weight:700; display:block; margin-bottom:4px; }
+.detail-full .detail-text {
+  font-size:13px; color:var(--gray-700); background:var(--gray-50);
+  border-radius:var(--radius-sm); padding:10px 12px; line-height:1.7;
+  white-space:pre-wrap; border:1px solid var(--gray-200);
+}
+</style>
+</head>
+
+<body>
+<div class="shell">
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-logo">BIO<br>AXEL</div>
+      <div>
+        <div class="brand-name">BIOAXEL</div>
+        <div class="brand-sub">CM SERVICE SYSTEM</div>
+      </div>
+    </div>
+    <span class="header-clock" id="clock"></span>
+  </header>
+
+  <div class="body-area">
+
+    <!-- ── SIDEBAR (desktop) ── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-section">งานซ่อม</div>
+      <button class="sb-item active" onclick="showPage('repair')">
+        <i class="fas fa-clipboard-list"></i> บันทึกงานซ่อม
+      </button>
+      <button class="sb-item" onclick="showPage('history')">
+        <i class="fas fa-clock-rotate-left"></i> ประวัติงานซ่อม
+      </button>
+      <div class="sb-section" style="margin-top:6px">ข้อมูลอ้างอิง</div>
+      <button class="sb-item" onclick="showPage('knowledge')">
+        <i class="fas fa-book-open"></i> คู่มือซ่อม
+      </button>
+      <button class="sb-item" onclick="showPage('parts')">
+        <i class="fas fa-boxes-stacked"></i> อะไหล่
+      </button>
+      <div class="sb-divider"></div>
+      <button class="sb-item" onclick="showPage('dashboard')">
+        <i class="fas fa-chart-pie"></i> Dashboard
+      </button>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+      <div class="main-inner">
+
+        <!-- PAGE: REPAIR FORM -->
+        <section class="page active" id="page-repair">
+          <div class="page-header">
+            <h1 class="page-title">📋 บันทึกงานซ่อม</h1>
+            <p class="page-sub">แจ้งซ่อมเครื่องกำจัดขยะเศษอาหาร BIOAXEL</p>
+          </div>
+
+          <div class="bio-strip">
+            <div class="bio-strip-logo">BIO<br>AXEL</div>
+            <div style="flex:1">
+              <div class="bio-strip-title">เครื่องกำจัดขยะเศษอาหาร BIOAXEL</div>
+              <div class="bio-strip-sub">เทคโนโลยีจุลินทรีย์ Superbact · ย่อยสลายใน 24 ชั่วโมง · ผ่านมาตรฐาน ม.อ.</div>
+              <div class="bio-strip-models">
+                <span>BA-50</span><span>BA-100</span><span>BA-500</span><span>BA-1000</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="repair-two-col">
+            <!-- LEFT COLUMN -->
+            <div class="repair-left">
+
+          <!-- Project Info -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-building"></i> ข้อมูลโครงการ / ลูกค้า</div>
+            <div class="form-group">
+              <label class="form-label">Type (รุ่นเครื่อง) <span class="req">*</span></label>
+              <select class="form-control" id="contract-no" onchange="onContractChange()">
+                <option value="">-- กำลังโหลด... --</option>
+              </select>
+            </div>
+            <div class="info-box hidden" id="project-info">
+              <div class="info-item"><label>Contract No</label><span id="info-contract">-</span></div>
+              <div class="info-item"><label>รุ่นเครื่อง (Model)</label><span id="info-model">-</span></div>
+              <div class="info-item"><label>ผู้ติดต่อ / เบอร์</label><span id="info-tel">-</span></div>
+              <div class="info-item"><label>Region / จังหวัด</label><span id="info-region">-</span></div>
+            </div>
+          </div>
+
+          <!-- Model & Status -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-microchip"></i> รุ่นเครื่องและสถานะ</div>
+            <label class="form-label" style="margin-bottom:8px">เลือกรุ่นเครื่อง BIOAXEL</label>
+            <div class="model-grid">
+              <div class="model-chip" onclick="selectChip(this,'BA-50')">
+                <div class="chip-model">BA-50</div><div class="chip-cap">50 กก./วัน</div>
+              </div>
+              <div class="model-chip" onclick="selectChip(this,'BA-100')">
+                <div class="chip-model">BA-100</div><div class="chip-cap">100 กก./วัน</div>
+              </div>
+              <div class="model-chip" onclick="selectChip(this,'BA-500')">
+                <div class="chip-model">BA-500</div><div class="chip-cap">500 กก./วัน</div>
+              </div>
+              <div class="model-chip" onclick="selectChip(this,'BA-1000')">
+                <div class="chip-model">BA-1000</div><div class="chip-cap">1,000 กก./วัน</div>
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Asset Code <span class="req">*</span></label>
+                <select class="form-control" id="asset-code">
+                  <option value="">-- เลือก Asset --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">สถานะประกัน</label>
+                <select class="form-control" id="wrt-status">
+                  <option value="">-- เลือก --</option>
+                  <option>อยู่ในประกัน</option>
+                  <option>หมดประกันสัญญา</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">สถานะเครื่อง</label>
+                <select class="form-control" id="mac-status">
+                  <option value="">-- เลือก --</option>
+                  <option>เปิดใช้งานปกติ</option>
+                  <option>ปิดใช้งาน</option>
+                  <option>รอซ่อม</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">สถานะงาน <span class="req">*</span></label>
+                <select class="form-control" id="work-status">
+                  <option value="">-- เลือก --</option>
+                  <option>รอดำเนินการ</option>
+                  <option>กำลังซ่อม</option>
+                  <option>ซ่อมเสร็จสิ้น</option>
+                  <option>รออะไหล่</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+            </div><!-- /repair-left -->
+
+            <!-- RIGHT COLUMN -->
+            <div class="repair-right">
+
+          <!-- Job Detail -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-file-lines"></i> รายละเอียดงาน</div>
+            <div class="form-group">
+              <label class="form-label">อาการที่พบ (เลือกด่วน)</label>
+              <select class="form-control" id="symptom-quick" onchange="fillSymptom()">
+                <option value="">-- เลือกอาการที่พบบ่อย --</option>
+                <optgroup label="⚡ ระบบไฟฟ้า">
+                  <option>เครื่องไม่ติด / ไม่เปิด</option>
+                  <option>เครื่องดับกลางคัน</option>
+                  <option>ไฟ Error ขึ้น / Alarm ดัง</option>
+                  <option>มอเตอร์ไม่หมุน</option>
+                </optgroup>
+                <optgroup label="🦠 ระบบจุลินทรีย์ Superbact">
+                  <option>กลิ่นเหม็นผิดปกติ</option>
+                  <option>ขยะไม่ย่อยสลาย / ค้างในถัง</option>
+                  <option>ความชื้นในถังสูงเกินไป</option>
+                  <option>จุลินทรีย์ Superbact หมด/ลดลง</option>
+                </optgroup>
+                <optgroup label="⚙️ ระบบกลไก">
+                  <option>ใบพัด/สว่านบด ติดขัด / ฝืด</option>
+                  <option>เสียงดังผิดปกติขณะทำงาน</option>
+                  <option>ระบบลิฟต์ไม่ทำงาน (BA-500/1000)</option>
+                  <option>ฝาถังปิดไม่สนิท</option>
+                </optgroup>
+                <optgroup label="🌡️ ระบบอุณหภูมิ">
+                  <option>อุณหภูมิไม่ถึงค่าที่กำหนด</option>
+                  <option>อุณหภูมิสูงเกินไป (Overheat)</option>
+                </optgroup>
+                <optgroup label="📱 ระบบควบคุม">
+                  <option>หน้าจอ Touch Screen ไม่ตอบสนอง</option>
+                  <option>จอ Monitor มองไม่เห็น (BA-500/1000)</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">รายละเอียดปัญหา</label>
+              <textarea class="form-control" id="problem-detail" rows="3" placeholder="อธิบายอาการที่พบโดยละเอียด..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">การดำเนินการแก้ไข</label>
+              <textarea class="form-control" id="action-taken" rows="3" placeholder="บอกวิธีแก้ไขที่ดำเนินการ..."></textarea>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">ชื่อช่าง</label>
+                <input type="text" class="form-control" id="technician" placeholder="ผู้รับผิดชอบ"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">หมายเหตุ</label>
+                <input type="text" class="form-control" id="remark" placeholder="หมายเหตุเพิ่มเติม"/>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block btn-lg" onclick="submitRepair()">
+            <i class="fas fa-paper-plane"></i> บันทึกงานซ่อม
+          </button>
+
+            </div><!-- /repair-right -->
+          </div><!-- /repair-two-col -->
+        </section>
+
+        <!-- PAGE: KNOWLEDGE BASE -->
+        <section class="page" id="page-knowledge">
+          <div class="page-header">
+            <h1 class="page-title">📖 คู่มือซ่อม BIOAXEL</h1>
+            <p class="page-sub">ขั้นตอนการแก้ไขปัญหาตามรุ่นและอาการ</p>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="fas fa-filter"></i> กรองข้อมูล</div>
+            <div class="form-grid-2">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">รุ่นเครื่อง</label>
+                <select class="form-control" id="kb-model" onchange="renderKnowledge()">
+                  <option value="">-- ทุกรุ่น --</option>
+                  <option value="BA-50">BA-50</option>
+                  <option value="BA-100">BA-100</option>
+                  <option value="BA-500">BA-500</option>
+                  <option value="BA-1000">BA-1000</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Asset Code</label>
+                <select class="form-control" id="kb-asset" onchange="renderKnowledge()">
+                  <option value="">-- ทั้งหมด --</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input class="form-control" type="text" id="kb-search" placeholder="ค้นหาอาการ..." oninput="renderKnowledge()"/>
+          </div>
+          <div id="kb-list">
+            <div class="loading"><div class="loading-ring"></div> กำลังโหลดคู่มือ...</div>
+          </div>
+        </section>
+
+        <!-- PAGE: SPARE PARTS -->
+        <section class="page" id="page-parts">
+          <div class="page-header">
+            <h1 class="page-title">🔩 อะไหล่เครื่อง BIOAXEL</h1>
+            <p class="page-sub">สต็อกอะไหล่สำหรับ BA-50 / BA-100 / BA-500 / BA-1000</p>
+          </div>
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input class="form-control" type="text" id="parts-search" placeholder="ค้นหาชื่ออะไหล่..." oninput="renderParts()"/>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn btn-sm btn-primary" onclick="setPartModel('')"   id="pm-all">ทั้งหมด</button>
+            <button class="btn btn-sm btn-outline" onclick="setPartModel('BA-50')"   id="pm-50">BA-50</button>
+            <button class="btn btn-sm btn-outline" onclick="setPartModel('BA-100')"  id="pm-100">BA-100</button>
+            <button class="btn btn-sm btn-outline" onclick="setPartModel('BA-500')"  id="pm-500">BA-500</button>
+            <button class="btn btn-sm btn-outline" onclick="setPartModel('BA-1000')" id="pm-1000">BA-1000</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>รหัส</th><th>ชื่ออะไหล่</th><th>รุ่น</th><th>หน่วย</th><th>คงเหลือ</th><th>สต็อก</th></tr>
+                </thead>
+                <tbody id="parts-tbody">
+                  <tr><td colspan="6"><div class="loading"><div class="loading-ring"></div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAGE: TICKET HISTORY -->
+        <section class="page" id="page-history">
+          <div class="page-header">
+            <h1 class="page-title">🕐 ประวัติงานซ่อม</h1>
+            <p class="page-sub">ค้นหาและดู Ticket งานซ่อมย้อนหลัง</p>
+          </div>
+          <!-- Filter Bar -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-filter"></i> ค้นหา / กรอง</div>
+            <div class="form-grid-2" style="margin-bottom:10px">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">รุ่นเครื่อง (Type)</label>
+                <select class="form-control" id="hist-type" onchange="loadHistory()">
+                  <option value="">-- ทุกรุ่น --</option>
+                  <option value="BA50">BA-50</option>
+                  <option value="BA100">BA-100</option>
+                  <option value="BA500">BA-500</option>
+                  <option value="BA1000">BA-1000</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">สถานะงาน</label>
+                <select class="form-control" id="hist-status" onchange="loadHistory()">
+                  <option value="">-- ทุกสถานะ --</option>
+                  <option>รอดำเนินการ</option>
+                  <option>กำลังซ่อม</option>
+                  <option>ซ่อมเสร็จสิ้น</option>
+                  <option>รออะไหล่</option>
+                </select>
+              </div>
+            </div>
+            <div class="search-bar" style="margin-bottom:0">
+              <i class="fas fa-search"></i>
+              <input class="form-control" type="text" id="hist-search" placeholder="ค้นหา Ticket ID, อาการ, ชื่อช่าง..." oninput="loadHistory()"/>
+            </div>
+          </div>
+          <!-- Result count -->
+          <div id="hist-count" style="font-size:12px;color:var(--gray-400);margin-bottom:8px;padding-left:2px"></div>
+          <!-- Ticket List -->
+          <div id="hist-list">
+            <div class="loading"><div class="loading-ring"></div> กำลังโหลด...</div>
+          </div>
+          <!-- Ticket Detail Modal -->
+          <div class="modal-bg" id="ticket-modal">
+            <div class="modal-sheet" style="max-width:600px">
+              <div class="modal-handle"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                <div class="modal-title" id="ticket-modal-id" style="margin-bottom:0">Ticket</div>
+                <button class="btn btn-sm btn-outline" onclick="closeTicketModal()">✕ ปิด</button>
+              </div>
+              <div id="ticket-modal-body"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAGE: DASHBOARD (enhanced) -->
+        <section class="page" id="page-dashboard">
+          <div class="page-header">
+            <h1 class="page-title">📊 Dashboard</h1>
+            <p class="page-sub">สรุปภาพรวมงานซ่อมเครื่อง BIOAXEL</p>
+          </div>
+          <!-- KPI Stats -->
+          <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
+            <div class="stat-card"><div class="stat-num" id="stat-total">–</div><div class="stat-label">งานทั้งหมด</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-pending">–</div><div class="stat-label">รอดำเนินการ</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-progress">–</div><div class="stat-label">กำลังซ่อม</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-done">–</div><div class="stat-label">เสร็จสิ้น</div></div>
+          </div>
+          <!-- Fix Rate + SLA breach -->
+          <div class="stats-row" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+            <div class="stat-card" style="border-top:3px solid var(--bio-500)">
+              <div class="stat-num" id="stat-fixrate" style="font-size:22px">–%</div>
+              <div class="stat-label">First-Time Fix Rate</div>
+            </div>
+            <div class="stat-card" style="border-top:3px solid #ef4444">
+              <div class="stat-num" id="stat-sla" style="font-size:22px;color:#ef4444">–</div>
+              <div class="stat-label">เกิน SLA (รายการ)</div>
+            </div>
+          </div>
+          <!-- Charts row -->
+          <div class="chart-grid">
+            <div class="chart-box">
+              <div class="chart-title"><i class="fas fa-chart-pie"></i> แยกตามสถานะงาน</div>
+              <div id="chart-status"></div>
+            </div>
+            <div class="chart-box">
+              <div class="chart-title"><i class="fas fa-chart-bar"></i> แยกตาม Region</div>
+              <div id="chart-region"></div>
+            </div>
+          </div>
+          <!-- Monthly trend -->
+          <div class="chart-box" style="margin-bottom:14px">
+            <div class="chart-title"><i class="fas fa-chart-line"></i> แนวโน้มงานซ่อมรายเดือน</div>
+            <div id="chart-monthly" style="width:100%;height:200px"></div>
+          </div>
+          <!-- Top 5 + Model breakdown side by side on wide screen -->
+          <div class="chart-grid">
+            <div class="card" style="margin-bottom:0">
+              <div class="card-title"><i class="fas fa-fire"></i> Top 5 อาการที่พบบ่อย</div>
+              <div id="top5-list"><div class="loading"><div class="loading-ring"></div></div></div>
+            </div>
+            <div class="card" style="margin-bottom:0">
+              <div class="card-title"><i class="fas fa-robot"></i> งานแยกตามรุ่นเครื่อง</div>
+              <div id="model-breakdown"><div class="loading"><div class="loading-ring"></div></div></div>
+            </div>
+          </div>
+          <!-- SLA Breached table -->
+          <div class="card" style="margin-top:14px">
+            <div class="card-title"><i class="fas fa-triangle-exclamation" style="color:#ef4444"></i> งานที่เกิน SLA</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Ticket ID</th><th>Asset</th><th>อาการ</th><th>สถานะ</th><th>SLA (วัน)</th><th>วันที่แจ้ง</th></tr></thead>
+                <tbody id="sla-tbody"><tr><td colspan="6"><div class="loading"><div class="loading-ring"></div></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /main-inner -->
+    </main>
+  </div><!-- /body-area -->
+
+  <!-- ── BOTTOM NAV (mobile) ── -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-repair"     onclick="showPage('repair')"><i class="fas fa-clipboard-list"></i>แจ้งซ่อม</button>
+    <button class="nav-item"        id="nav-history"    onclick="showPage('history')"><i class="fas fa-clock-rotate-left"></i>ประวัติ</button>
+    <button class="nav-item"        id="nav-knowledge"  onclick="showPage('knowledge')"><i class="fas fa-book-open"></i>คู่มือ</button>
+    <button class="nav-item"        id="nav-parts"      onclick="showPage('parts')"><i class="fas fa-boxes-stacked"></i>อะไหล่</button>
+    <button class="nav-item"        id="nav-dashboard"  onclick="showPage('dashboard')"><i class="fas fa-chart-pie"></i>Dashboard</button>
+  </nav>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- ── CONFIRM MODAL ── -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✅ ยืนยันการบันทึก</div>
+    <p style="font-size:14px;color:var(--gray-500);margin-bottom:18px" id="modal-msg"></p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:1" id="modal-ok" onclick="confirmSave()">
+        <i class="fas fa-check"></i> ยืนยัน
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+const S = {
+  projects: [],
+  assets: [],
+  knowledge: [],
+  parts: [],
+  pending: null,
+  partsModel: '',
+  chartsLoaded: false
+};
+
+// ══════════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════════
+function tick() {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = new Date().toLocaleString('th-TH', {
+    hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short'
+  });
+}
+setInterval(tick, 1000); tick();
+
+// ══════════════════════════════════════════════════════════
+// GAS BRIDGE  –  ใช้ google.script.run ถ้ามี, fallback mock
+// ══════════════════════════════════════════════════════════
+function callGas(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        [fn](...args);
+    } else {
+      // DEV MODE: return mock data
+      setTimeout(() => resolve(mockData(fn, args)), 300);
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// MOCK DATA (ใช้ตอน dev / ก่อนต่อ GAS จริง)
+// ══════════════════════════════════════════════════════════
+function mockData(fn) {
+  if (fn === 'getProjects') return [
+    { Contract_No:'BA640001', Project_Name:'เทศบาลตำบลนาตาล่วง', Type:'BA100M-YMD-06', Model:'BA100', contact_Tel:'0960053388', Region:'ตรัง' },
+    { Contract_No:'BA640001', Project_Name:'ศูนย์การเรียนรู้เกษตรผสมผสาน', Type:'BA100M-YMD-08', Model:'BA100', contact_Tel:'084-7442595', Region:'นครศรีธรรมราช' },
+    { Contract_No:'BA-CNT-003', Project_Name:'ตลาดสดเชียงใหม่ใหญ่',   Type:'BA1000M-CNX-01', Model:'BA1000', contact_Tel:'053-201-000', Region:'เชียงใหม่' },
+    { Contract_No:'BA-CNT-004', Project_Name:'โรงเรียนนานาชาติ ISB',   Type:'BA50M-BKK-01',  Model:'BA50',  contact_Tel:'02-963-5800', Region:'กรุงเทพ' },
+    { Contract_No:'BA-CNT-005', Project_Name:'เทศบาลเมืองขอนแก่น',    Type:'BA500M-KKN-01', Model:'BA500', contact_Tel:'043-221-000', Region:'ขอนแก่น' },
+  ];
+  if (fn === 'getAssets') return [
+    { Asset_Code:'AST-BA50-001',  Asset_Name:'BIOAXEL BA-50 #1' },
+    { Asset_Code:'AST-BA50-002',  Asset_Name:'BIOAXEL BA-50 #2' },
+    { Asset_Code:'AST-BA100-001', Asset_Name:'BIOAXEL BA-100 #1' },
+    { Asset_Code:'AST-BA100-002', Asset_Name:'BIOAXEL BA-100 #2' },
+    { Asset_Code:'AST-BA500-001', Asset_Name:'BIOAXEL BA-500 #1' },
+    { Asset_Code:'AST-BA1000-001',Asset_Name:'BIOAXEL BA-1000 #1' },
+  ];
+  if (fn === 'getKnowledgeByAsset') return [
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบไฟฟ้า', Symptom:'เครื่องไม่ติด / ไม่เปิด', Standard_Action:'1. ตรวจสอบแหล่งจ่ายไฟและปลั๊ก\n2. ตรวจ Circuit Breaker ในตู้ไฟ\n3. ตรวจ Fuse ของเครื่อง\n4. Reset ปุ่ม Emergency Stop\n5. ติดต่อ BIOAXEL Support: 093-578-5519' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบไฟฟ้า', Symptom:'เครื่องดับกลางคัน', Standard_Action:'1. ตรวจ Over Temperature Protection\n2. ตรวจสอบ Load ไฟฟ้าไม่เกินพิกัด\n3. ทำความสะอาดตะแกรงระบายความร้อน\n4. รอเครื่องเย็น 15 นาที แล้วลองใหม่' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบไฟฟ้า', Symptom:'ไฟ Error ขึ้น / Alarm ดัง', Standard_Action:'1. จดรหัส Error Code บนหน้าจอ\n2. ดู Error Code Guide ในคู่มือเครื่อง\n3. กด Reset บน Touch Screen\n4. ถ้า Error ซ้ำ แจ้ง BIOAXEL' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบไฟฟ้า', Symptom:'มอเตอร์ไม่หมุน', Standard_Action:'1. ตรวจดูสิ่งแปลกปลอมติดใบพัด\n2. ตรวจสายไฟมอเตอร์ให้แน่น\n3. ตรวจ Thermal Overload Relay\n4. วัดกระแสมอเตอร์เปรียบเทียบ Nameplate' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'จุลินทรีย์ Superbact', Symptom:'กลิ่นเหม็นผิดปกติ', Standard_Action:'1. ตรวจ pH ในถัง (ควร 6.5–7.5)\n2. เติม Superbact 200–500 กรัม\n3. ปรับความชื้น 50–60%\n4. เปิดระบบระบายอากาศเต็มที่\n5. หยุดใส่ขยะ 12–24 ชม.' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'จุลินทรีย์ Superbact', Symptom:'ขยะไม่ย่อยสลาย / ค้างในถัง', Standard_Action:'1. ตรวจว่าใส่ขยะเกินปริมาณหรือไม่\n2. ตรวจอุณหภูมิถัง (ควร 45–60°C)\n3. เติม Superbact Booster 500 กรัม\n4. รัน Mixing Mode เพื่อผสมขยะ' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'จุลินทรีย์ Superbact', Symptom:'ความชื้นในถังสูงเกินไป', Standard_Action:'1. ตรวจระบบระบายน้ำด้านล่างถัง\n2. ลดขยะที่มีน้ำสูง เช่น ผลไม้\n3. เปิด Heater เพิ่มอุณหภูมิ\n4. เพิ่มแกลบ/ขี้เลื่อย 1–2 กก. ดูดความชื้น' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบกลไก', Symptom:'ใบพัด/สว่านบด ติดขัด', Standard_Action:'1. ปิดเครื่องและรอให้หยุดสมบูรณ์\n2. เปิดฝาตรวจสิ่งแปลกปลอม\n3. นำกระดูก/แกนแข็งออก\n4. หมุนใบพัดด้วยมือตรวจการฝืด\n5. ทำความสะอาดและใส่จารบีที่ Shaft' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบกลไก', Symptom:'เสียงดังผิดปกติขณะทำงาน', Standard_Action:'1. ฟังทิศทางเสียงระบุตำแหน่ง\n2. ตรวจ Bearing มอเตอร์\n3. ตรวจ Gear Box น้ำมันหล่อลื่น\n4. ตรวจน็อตยึดชิ้นส่วนทั้งหมด' },
+    { Asset_Code:'AST-BA500', Model:'BA-500/1000', Category:'ระบบกลไก', Symptom:'ระบบลิฟต์ไม่ทำงาน', Standard_Action:'1. ตรวจ Limit Switch ด้านบน-ล่าง\n2. ตรวจ Chain/Belt ของลิฟต์\n3. ตรวจมอเตอร์ลิฟต์\n4. Calibrate Home Position ผ่านเมนู Maintenance' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบอุณหภูมิ', Symptom:'อุณหภูมิไม่ถึงค่าที่กำหนด', Standard_Action:'1. ตรวจ Heating Element ทำงานหรือไม่\n2. ตรวจ Thermocouple/Temperature Sensor\n3. ตรวจฉนวนถังมีรอยรั่ว\n4. ลดปริมาณขยะลง 30%' },
+    { Asset_Code:'ALL', Model:'BA-50/100/500/1000', Category:'ระบบควบคุม', Symptom:'หน้าจอ Touch Screen ไม่ตอบสนอง', Standard_Action:'1. ทำความสะอาดหน้าจอด้วยผ้าแห้ง\n2. Reboot เครื่องผ่านปิด-เปิดไฟหลัก\n3. ตรวจสาย USB/HDMI ของ Panel PC\n4. แจ้ง BIOAXEL เพื่อเปลี่ยน Overlay' },
+  ];
+  if (fn === 'getSpareParts') return [
+    { Part_Code:'BP-001', Part_Name:'มอเตอร์หลัก 0.75kW',     Model:'BA-50',       Unit:'ตัว',     in_Stock:2,  Min_Stock:1 },
+    { Part_Code:'BP-002', Part_Name:'มอเตอร์หลัก 1.5kW',      Model:'BA-100',      Unit:'ตัว',     in_Stock:1,  Min_Stock:1 },
+    { Part_Code:'BP-003', Part_Name:'ใบพัดบดย่อย',             Model:'BA-50/100',   Unit:'ชุด',     in_Stock:4,  Min_Stock:2 },
+    { Part_Code:'BP-004', Part_Name:'Bearing 6205 2RS',         Model:'ALL',         Unit:'ตัว',     in_Stock:10, Min_Stock:4 },
+    { Part_Code:'BP-005', Part_Name:'Superbact จุลินทรีย์ 1kg', Model:'ALL',        Unit:'ถุง',     in_Stock:20, Min_Stock:8 },
+    { Part_Code:'BP-006', Part_Name:'Superbact Booster 500g',   Model:'ALL',         Unit:'ถุง',     in_Stock:15, Min_Stock:6 },
+    { Part_Code:'BP-007', Part_Name:'Heating Element 220V 500W',Model:'BA-50/100',   Unit:'แท่ง',   in_Stock:5,  Min_Stock:2 },
+    { Part_Code:'BP-008', Part_Name:'Thermocouple Type-K',      Model:'ALL',         Unit:'ตัว',     in_Stock:3,  Min_Stock:2 },
+    { Part_Code:'BP-009', Part_Name:'Touch Screen Panel 7"',    Model:'BA-50/100',   Unit:'ตัว',     in_Stock:1,  Min_Stock:1 },
+    { Part_Code:'BP-010', Part_Name:'Circuit Breaker 3P 10A',   Model:'ALL',         Unit:'ตัว',     in_Stock:6,  Min_Stock:2 },
+    { Part_Code:'BP-011', Part_Name:'มอเตอร์ลิฟต์ 0.4kW',      Model:'BA-500',     Unit:'ตัว',     in_Stock:1,  Min_Stock:1 },
+    { Part_Code:'BP-012', Part_Name:'Chain #40 ลิฟต์',          Model:'BA-500',      Unit:'เส้น',   in_Stock:2,  Min_Stock:1 },
+    { Part_Code:'BP-013', Part_Name:'มอเตอร์หลัก 7.5kW',       Model:'BA-500',      Unit:'ตัว',     in_Stock:1,  Min_Stock:1 },
+    { Part_Code:'BP-014', Part_Name:'มอเตอร์หลัก 15kW',        Model:'BA-1000',     Unit:'ตัว',     in_Stock:0,  Min_Stock:1 },
+    { Part_Code:'BP-015', Part_Name:'Gear Reducer 1:40',         Model:'BA-500/1000', Unit:'ตัว',    in_Stock:1,  Min_Stock:1 },
+    { Part_Code:'BP-016', Part_Name:'Limit Switch ลิฟต์',       Model:'BA-500/1000', Unit:'ตัว',    in_Stock:4,  Min_Stock:2 },
+    { Part_Code:'BP-017', Part_Name:'Gear Oil GL-4 4L',          Model:'BA-500/1000', Unit:'กระป๋อง',in_Stock:3, Min_Stock:2 },
+    { Part_Code:'BP-018', Part_Name:'Monitor 10" (BA-500/1000)', Model:'BA-500/1000', Unit:'ตัว',   in_Stock:0,  Min_Stock:1 },
+    { Part_Code:'BP-019', Part_Name:'Proximity Sensor 12mm NPN', Model:'BA-500/1000', Unit:'ตัว',   in_Stock:5,  Min_Stock:2 },
+    { Part_Code:'BP-020', Part_Name:'Thermal Overload Relay',    Model:'BA-500/1000', Unit:'ตัว',   in_Stock:2,  Min_Stock:1 },
+  ];
+  if (fn === 'getTickets') return [
+    { Ticket_ID:'TK-20250401-0001', Report_Date:'2025-04-01 09:15:00', Service_Date:'2025-04-01', Contract_No:'BA640001', Product_Model:'BA100', Asset_Code:'AST-BA100-001', Client_Issue:'เครื่องไม่ติด / ไม่เปิด', Action_Taken:'ตรวจ Circuit Breaker พบ Trip ทำการ Reset และทดสอบเดินเครื่อง', Work_Status:'ซ่อมเสร็จสิ้น', Warranty_Status:'อยู่ในประกัน', Technician:'สมชาย', SLA_Days:'', Root_Cause:'CB Trip เนื่องจากกระแสเกิน', Spare_Parts_Used:'', Remark:'' },
+    { Ticket_ID:'TK-20250402-0002', Report_Date:'2025-04-02 13:30:00', Service_Date:'2025-04-02', Contract_No:'BA640001', Product_Model:'BA100', Asset_Code:'AST-BA100-002', Client_Issue:'กลิ่นเหม็นผิดปกติ', Action_Taken:'เติม Superbact 300 กรัม ปรับความชื้น', Work_Status:'ซ่อมเสร็จสิ้น', Warranty_Status:'อยู่ในประกัน', Technician:'วิชัย', SLA_Days:'', Root_Cause:'จุลินทรีย์ลดลงจากขยะกรดสูง', Spare_Parts_Used:'Superbact 300g', Remark:'' },
+    { Ticket_ID:'TK-20250403-0003', Report_Date:'2025-04-03 10:00:00', Service_Date:'2025-04-03', Contract_No:'BA-CNT-003', Product_Model:'BA1000', Asset_Code:'AST-BA1000-001', Client_Issue:'ระบบลิฟต์ไม่ทำงาน', Action_Taken:'รออะไหล่ Limit Switch', Work_Status:'รออะไหล่', Warranty_Status:'หมดประกันสัญญา', Technician:'สมชาย', SLA_Days:5, Root_Cause:'', Spare_Parts_Used:'', Remark:'รอสั่งอะไหล่จากกรุงเทพ' },
+    { Ticket_ID:'TK-20250404-0004', Report_Date:'2025-04-04 08:45:00', Service_Date:'2025-04-04', Contract_No:'BA-CNT-005', Product_Model:'BA500', Asset_Code:'AST-BA500-001', Client_Issue:'เสียงดังผิดปกติขณะทำงาน', Action_Taken:'กำลังตรวจสอบ Bearing มอเตอร์', Work_Status:'กำลังซ่อม', Warranty_Status:'อยู่ในประกัน', Technician:'วิชัย', SLA_Days:3, Root_Cause:'', Spare_Parts_Used:'', Remark:'' },
+    { Ticket_ID:'TK-20250405-0005', Report_Date:'2025-04-05 14:20:00', Service_Date:'2025-04-05', Contract_No:'BA-CNT-004', Product_Model:'BA50', Asset_Code:'AST-BA50-001', Client_Issue:'หน้าจอ Touch Screen ไม่ตอบสนอง', Action_Taken:'', Work_Status:'รอดำเนินการ', Warranty_Status:'อยู่ในประกัน', Technician:'', SLA_Days:'', Root_Cause:'', Spare_Parts_Used:'', Remark:'' },
+  ].filter(t => {
+    const f = args[0] || {};
+    if (f.type   && !(t.Product_Model||'').includes(f.type))  return false;
+    if (f.status && t.Work_Status !== f.status)               return false;
+    if (f.q) { const q=f.q.toLowerCase(); if (![t.Ticket_ID,t.Client_Issue,t.Technician,t.Asset_Code].join(' ').toLowerCase().includes(q)) return false; }
+    return true;
+  });
+  if (fn === 'getDashboardData') return {
+    total: 58,
+    statusCount: { 'รอดำเนินการ':10, 'กำลังซ่อม':15, 'ซ่อมเสร็จสิ้น':26, 'รออะไหล่':7 },
+    regionCount: { 'กรุงเทพ':24, 'ภาคใต้':12, 'ภาคเหนือ':10, 'ภาคตะวันออกเฉียงเหนือ':8, 'ภาคตะวันออก':4 },
+    modelCount:  { 'BA-50':12, 'BA-100':18, 'BA-500':20, 'BA-1000':8 },
+    monthlyCount:{ '2025-01':8, '2025-02':12, '2025-03':15, '2025-04':10, '2025-05':13 },
+    top5Symptoms: [
+      { name:'กลิ่นเหม็นผิดปกติ', count:14 },
+      { name:'เครื่องไม่ติด / ไม่เปิด', count:11 },
+      { name:'ขยะไม่ย่อยสลาย / ค้างในถัง', count:9 },
+      { name:'เสียงดังผิดปกติขณะทำงาน', count:7 },
+      { name:'หน้าจอ Touch Screen ไม่ตอบสนอง', count:5 }
+    ],
+    fixRate: 78,
+    slaBreached: [
+      { Ticket_ID:'TK-20250403-0003', Asset_Code:'AST-BA1000-001', Client_Issue:'ระบบลิฟต์ไม่ทำงาน', Work_Status:'รออะไหล่', SLA_Days:5, Report_Date:'2025-04-03' },
+      { Ticket_ID:'TK-20250404-0004', Asset_Code:'AST-BA500-001',  Client_Issue:'เสียงดังผิดปกติ',    Work_Status:'กำลังซ่อม', SLA_Days:3, Report_Date:'2025-04-04' }
+    ]
+  };
+  if (fn === 'saveServiceRecord') return { success: true, ticketId: 'TK-MOCK-' + Date.now() };
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════
+function toast(msg, type = 'info', dur = 3500) {
+  const wrap = document.getElementById('toast-wrap');
+  const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', info:'fa-info-circle' };
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `<i class="fas ${icons[type]||icons.info}"></i>${msg}`;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+function showPage(name) {
+  // hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name)?.classList.add('active');
+
+  // reset all nav buttons
+  document.querySelectorAll('.nav-item, .sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + name)?.classList.add('active');
+
+  // sidebar: match by page name
+  document.querySelectorAll('.sb-item').forEach(b => {
+    const map = { repair:'บันทึก', history:'ประวัติ', knowledge:'คู่มือ', parts:'อะไหล่', dashboard:'Dashboard' };
+    if (b.textContent.includes(map[name])) b.classList.add('active');
+  });
+
+  // lazy load
+  if (name === 'knowledge' && S.knowledge.length === 0) loadKnowledge();
+  if (name === 'parts'     && S.parts.length === 0)    loadParts();
+  if (name === 'dashboard' && !S.chartsLoaded)         loadDashboard();
+  if (name === 'history')                              loadHistory();
+}
+
+// ══════════════════════════════════════════════════════════
+// LOAD INITIAL DATA (projects + assets)
+// ══════════════════════════════════════════════════════════
+async function loadInit() {
+  try {
+    const [projects, assets] = await Promise.all([
+      callGas('getProjects'),
+      callGas('getAssets')
+    ]);
+    S.projects = projects || [];
+    S.assets   = assets   || [];
+
+    // Fill Type dropdown (แสดง Type – Project_Name)
+    const sel = document.getElementById('contract-no');
+    sel.innerHTML = '<option value="">-- เลือก Type --</option>';
+    S.projects.forEach(p => {
+      const o = document.createElement('option');
+      // key = Type (unique identifier), fallback Contract_No
+      o.value = p.Type || p.Contract_No;
+      o.textContent = p.Type
+        ? `${p.Type}${p.Project_Name ? '  –  ' + p.Project_Name : ''}`
+        : `${p.Contract_No}${p.Project_Name ? '  –  ' + p.Project_Name : ''}`;
+      sel.appendChild(o);
+    });
+
+    // Fill asset dropdowns
+    ['asset-code', 'kb-asset'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = id === 'kb-asset'
+        ? '<option value="">-- ทั้งหมด --</option>'
+        : '<option value="">-- เลือก Asset --</option>';
+      S.assets.forEach(a => {
+        const o = document.createElement('option');
+        o.value = a.Asset_Code;
+        o.textContent = a.Asset_Code + (a.Asset_Name ? ' – ' + a.Asset_Name : '');
+        el.appendChild(o);
+      });
+    });
+
+  } catch (e) {
+    toast('โหลดข้อมูลโครงการไม่สำเร็จ: ' + e.message, 'error');
+    document.getElementById('contract-no').innerHTML = '<option value="">-- โหลดไม่สำเร็จ --</option>';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// REPAIR FORM
+// ══════════════════════════════════════════════════════════
+function onContractChange() {
+  const val = document.getElementById('contract-no').value;
+  const box = document.getElementById('project-info');
+  if (!val) { box.classList.add('hidden'); return; }
+  // match by Type first, fallback Contract_No
+  const p = S.projects.find(x => (x.Type || x.Contract_No) === val);
+  if (p) {
+    document.getElementById('info-contract').textContent = p.Contract_No || '-';
+    document.getElementById('info-model').textContent    = p.Model       || '-';
+    document.getElementById('info-tel').textContent      = p.contact_Tel || '-';
+    document.getElementById('info-region').textContent   = p.Region      || '-';
+    box.classList.remove('hidden');
+    // auto-select model chip
+    if (p.Model) {
+      document.querySelectorAll('.model-chip').forEach(c => {
+        // match เช่น "BA-100" กับ "BA100" หรือ "BA100M-YMD-06"
+        const chipText = c.querySelector('.chip-model')?.textContent || '';
+        const modelClean = p.Model.replace(/-/g, '').toUpperCase();
+        c.classList.toggle('selected', modelClean.startsWith(chipText.replace(/-/g,'').toUpperCase()));
+      });
+    }
+  }
+}
+
+function selectChip(el, model) {
+  document.querySelectorAll('.model-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function fillSymptom() {
+  const v = document.getElementById('symptom-quick').value;
+  if (v) document.getElementById('problem-detail').value = v;
+}
+
+function submitRepair() {
+  const typeVal  = document.getElementById('contract-no').value;
+  const asset    = document.getElementById('asset-code').value;
+  const status   = document.getElementById('work-status').value;
+  if (!typeVal) { toast('กรุณาเลือก Type', 'error'); return; }
+  if (!asset)   { toast('กรุณาเลือก Asset Code', 'error'); return; }
+  if (!status)  { toast('กรุณาเลือกสถานะงาน', 'error'); return; }
+  const p = S.projects.find(x => (x.Type || x.Contract_No) === typeVal) || {};
+  S.pending = {
+    Contract_No:     p.Contract_No  || typeVal,
+    Project_Name:    p.Project_Name || '',
+    Type:            p.Type         || typeVal,
+    Model:           p.Model        || '',
+    contact_Tel:     p.contact_Tel  || '',
+    Region:          p.Region       || '',
+    Asset_Code:      asset,
+    wrt_Status:      document.getElementById('wrt-status').value,
+    mac_Status:      document.getElementById('mac-status').value,
+    Work_Status:     status,
+    Problem_Detail:  document.getElementById('problem-detail').value,
+    Action_Taken:    document.getElementById('action-taken').value,
+    Technician:      document.getElementById('technician').value,
+    Remark:          document.getElementById('remark').value
+  };
+  document.getElementById('modal-msg').textContent =
+    `บันทึกงานซ่อม: ${p.Type || typeVal}${p.Project_Name ? ' – ' + p.Project_Name : ''} | ${asset} | ${status}`;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+async function confirmSave() {
+  const btn = document.getElementById('modal-ok');
+  btn.innerHTML = '<div class="spinner"></div> กำลังบันทึก...';
+  btn.disabled = true;
+  try {
+    const res = await callGas('saveServiceRecord', S.pending);
+    closeModal();
+    if (res?.success) {
+      toast(`✅ บันทึกสำเร็จ! (${res.ticketId || res.recordId})`, 'success', 5000);
+      resetForm();
+      S.chartsLoaded = false;
+    } else {
+      toast('บันทึกไม่สำเร็จ: ' + (res?.error || 'Unknown'), 'error');
+    }
+  } catch (e) {
+    toast('เกิดข้อผิดพลาด: ' + e.message, 'error');
+  } finally {
+    btn.innerHTML = '<i class="fas fa-check"></i> ยืนยัน';
+    btn.disabled = false;
+  }
+}
+
+function closeModal() {
+  document.getElementById('confirm-modal').classList.remove('open');
+}
+document.getElementById('confirm-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+function resetForm() {
+  ['contract-no','asset-code','wrt-status','mac-status','work-status','symptom-quick'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['problem-detail','action-taken','technician','remark'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('project-info').classList.add('hidden');
+  document.querySelectorAll('.model-chip').forEach(c => c.classList.remove('selected'));
+}
+
+// ══════════════════════════════════════════════════════════
+// KNOWLEDGE BASE
+// ══════════════════════════════════════════════════════════
+async function loadKnowledge() {
+  document.getElementById('kb-list').innerHTML =
+    '<div class="loading"><div class="loading-ring"></div> กำลังโหลดคู่มือ...</div>';
+  try {
+    // ส่ง '' เพื่อดึงทั้งหมด แล้วกรองฝั่ง client
+    S.knowledge = await callGas('getKnowledgeByAsset', '');
+    renderKnowledge();
+  } catch (e) {
+    document.getElementById('kb-list').innerHTML =
+      '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>โหลดไม่สำเร็จ</p></div>';
+  }
+}
+
+function renderKnowledge() {
+  const modelF = document.getElementById('kb-model')?.value  || '';
+  const assetF = document.getElementById('kb-asset')?.value  || '';
+  const q      = (document.getElementById('kb-search')?.value || '').toLowerCase();
+
+  let data = S.knowledge.filter(kb => {
+    const model  = (kb.Model        || '').toLowerCase();
+    const asset  = (kb.Asset_Code   || '').toLowerCase();
+    const sym    = (kb.Symptom      || '').toLowerCase();
+    const action = (kb.Standard_Action || '').toLowerCase();
+    const cat    = (kb.Category     || '').toLowerCase();
+
+    if (modelF && !model.includes(modelF.toLowerCase())) return false;
+    if (assetF && asset !== assetF.toLowerCase() && asset !== 'all') return false;
+    if (q && !sym.includes(q) && !action.includes(q) && !cat.includes(q)) return false;
+    return true;
+  });
+
+  const list = document.getElementById('kb-list');
+  if (!data.length) {
+    list.innerHTML = '<div class="empty-state"><i class="fas fa-book"></i><p>ไม่พบข้อมูลคู่มือ</p></div>';
+    return;
+  }
+
+  const icons = { 'ระบบไฟฟ้า':'⚡','จุลินทรีย์ Superbact':'🦠','ระบบกลไก':'⚙️','ระบบอุณหภูมิ':'🌡️','ระบบควบคุม':'📱' };
+  const groups = {};
+  data.forEach(kb => {
+    const cat = kb.Category || 'ทั่วไป';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(kb);
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([cat, items]) => {
+    html += `<div class="kb-section-label">${icons[cat] || '🔧'} ${cat}
+      <span style="color:var(--gray-400);font-weight:400">(${items.length})</span></div>`;
+    items.forEach(kb => {
+      html += `
+        <div class="kb-card" onclick="this.classList.toggle('open')">
+          <div class="kb-header">
+            <div>
+              <span class="badge badge-lime" style="font-size:10px">${kb.Model||''}</span>
+              <div class="kb-symptom">${kb.Symptom||'ไม่ระบุ'}</div>
+            </div>
+            <i class="fas fa-chevron-down kb-chevron"></i>
+          </div>
+          <div class="kb-action">
+            <strong><i class="fas fa-tools"></i> วิธีดำเนินการ:</strong><br/>
+            <span style="white-space:pre-line">${kb.Standard_Action||'-'}</span>
+          </div>
+        </div>`;
+    });
+  });
+  list.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// SPARE PARTS
+// ══════════════════════════════════════════════════════════
+async function loadParts() {
+  try {
+    S.parts = await callGas('getSpareParts');
+    renderParts();
+  } catch (e) {
+    document.getElementById('parts-tbody').innerHTML =
+      `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-box-open"></i><p>โหลดไม่สำเร็จ</p></div></td></tr>`;
+  }
+}
+
+function renderParts() {
+  const q = (document.getElementById('parts-search')?.value || '').toLowerCase();
+  const mf = S.partsModel;
+  const data = S.parts.filter(p => {
+    const name = (p.Part_Name || '').toLowerCase();
+    const code = (p.Part_Code || '').toLowerCase();
+    const mod  = (p.Model     || '');
+    if (mf && !mod.includes(mf)) return false;
+    if (q && !name.includes(q) && !code.includes(q)) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('parts-tbody');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-box-open"></i><p>ไม่พบรายการ</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(p => {
+    const stock = parseInt(p.in_Stock)  || 0;
+    const min   = parseInt(p.Min_Stock) || 3;
+    const pct   = Math.min(100, (stock / Math.max(min * 2, 1)) * 100);
+    const cls   = stock === 0 ? 'critical' : stock <= min ? 'low' : '';
+    const badge = stock === 0
+      ? '<span class="badge badge-red">หมด</span>'
+      : stock <= min
+        ? '<span class="badge badge-yellow">ต่ำ</span>'
+        : '<span class="badge badge-green">ปกติ</span>';
+    const mBadge = p.Model
+      ? `<span class="badge badge-lime" style="font-size:10px">${p.Model}</span>` : '';
+    return `<tr>
+      <td><code style="font-size:11px;color:var(--bio-700)">${p.Part_Code||''}</code></td>
+      <td style="font-weight:500;min-width:140px">${p.Part_Name||'-'}</td>
+      <td>${mBadge}</td>
+      <td style="color:var(--gray-400)">${p.Unit||'-'}</td>
+      <td><strong>${stock}</strong> ${badge}</td>
+      <td>
+        <div class="stock-bar">
+          <div class="stock-fill ${cls}" style="width:${pct}%"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function setPartModel(model) {
+  S.partsModel = model;
+  ['all','50','100','500','1000'].forEach(s => {
+    const b = document.getElementById('pm-' + s);
+    if (b) b.className = 'btn btn-sm btn-outline';
+  });
+  const aid = model ? 'pm-' + model.replace('BA-','') : 'pm-all';
+  const ab = document.getElementById(aid);
+  if (ab) ab.className = 'btn btn-sm btn-primary';
+  renderParts();
+}
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════
+google.charts.load('current', { packages: ['corechart','bar'], language: 'th' });
+const BIO_COLORS = ['#1e6b46','#2d8a5a','#3aaa6e','#52c785','#84cc16','#065f46','#a3e635'];
+
+async function loadDashboard() {
+  try {
+    const d = await callGas('getDashboardData');
+    // Stats
+    document.getElementById('stat-total').textContent    = d.total || 0;
+    document.getElementById('stat-pending').textContent  = d.statusCount?.['รอดำเนินการ']  || 0;
+    document.getElementById('stat-progress').textContent = d.statusCount?.['กำลังซ่อม']    || 0;
+    document.getElementById('stat-done').textContent     = d.statusCount?.['ซ่อมเสร็จสิ้น'] || 0;
+
+    // Model breakdown bars
+    if (d.modelCount && Object.keys(d.modelCount).length) {
+      const total = Object.values(d.modelCount).reduce((a,b) => a + b, 0);
+      document.getElementById('model-breakdown').innerHTML = Object.entries(d.modelCount)
+        .map(([m, cnt]) => {
+          const pct = total ? Math.round(cnt / total * 100) : 0;
+          return `<div class="prog-row">
+            <div class="prog-header"><span>${m}</span><span>${cnt} งาน (${pct}%)</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+          </div>`;
+        }).join('');
+    } else {
+      document.getElementById('model-breakdown').innerHTML =
+        '<div class="empty-state"><i class="fas fa-chart-bar"></i><p>ยังไม่มีข้อมูล</p></div>';
+    }
+
+    // Charts
+    google.charts.setOnLoadCallback(() => {
+      drawPie('chart-status', d.statusCount, 'สถานะงาน');
+      drawBar('chart-region', d.regionCount, 'Region');
+    });
+    S.chartsLoaded = true;
+  } catch (e) {
+    toast('โหลด Dashboard ไม่สำเร็จ', 'error');
+  }
+}
+
+function drawPie(divId, obj, title) {
+  if (!obj || !Object.keys(obj).length) return;
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'สถานะ');
+  data.addColumn('number', 'จำนวน');
+  Object.entries(obj).forEach(([k, v]) => data.addRow([k, v]));
+  new google.visualization.PieChart(document.getElementById(divId)).draw(data, {
+    title,
+    titleTextStyle: { fontSize: 12, color: '#334155', bold: true },
+    colors: BIO_COLORS,
+    legend: { position: 'bottom', textStyle: { fontSize: 10 } },
+    chartArea: { width: '92%', height: '68%' },
+    backgroundColor: 'transparent',
+    pieHole: 0.4
+  });
+}
+
+function drawBar(divId, obj, title) {
+  if (!obj || !Object.keys(obj).length) return;
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'Region');
+  data.addColumn('number', 'จำนวน');
+  Object.entries(obj).forEach(([k, v]) => data.addRow([k, v]));
+  new google.visualization.BarChart(document.getElementById(divId)).draw(data, {
+    title,
+    titleTextStyle: { fontSize: 12, color: '#334155', bold: true },
+    colors: ['#2d8a5a'],
+    legend: { position: 'none' },
+    chartArea: { width: '68%', height: '72%' },
+    backgroundColor: 'transparent',
+    hAxis: { textStyle: { fontSize: 10 } },
+    vAxis: { textStyle: { fontSize: 10 } }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// TICKET HISTORY
+// ══════════════════════════════════════════════════════════
+async function loadHistory() {
+  const filter = {
+    type:   (document.getElementById('hist-type')?.value   || '').replace(/-/g,'').trim(),
+    status: document.getElementById('hist-status')?.value  || '',
+    q:      document.getElementById('hist-search')?.value  || ''
+  };
+  // ลบ key ที่ว่าง ไม่ให้ GAS filter ผิด
+  Object.keys(filter).forEach(k => { if (!filter[k]) delete filter[k]; });
+
+  document.getElementById('hist-list').innerHTML =
+    '<div class="loading"><div class="loading-ring"></div> กำลังโหลด...</div>';
+
+  try {
+    const tickets = await callGas('getTickets', filter);
+    renderHistory(tickets);
+  } catch(e) {
+    document.getElementById('hist-list').innerHTML =
+      '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>โหลดไม่สำเร็จ</p></div>';
+  }
+}
+
+function renderHistory(tickets) {
+  const countEl = document.getElementById('hist-count');
+  countEl.textContent = `พบ ${tickets.length} รายการ`;
+
+  if (!tickets.length) {
+    document.getElementById('hist-list').innerHTML =
+      '<div class="empty-state"><i class="fas fa-inbox"></i><p>ไม่พบ Ticket ที่ตรงเงื่อนไข</p></div>';
+    return;
+  }
+
+  const statusClass = {
+    'ซ่อมเสร็จสิ้น':'status-done', 'กำลังซ่อม':'status-progress',
+    'รอดำเนินการ':'status-wait', 'รออะไหล่':'status-parts'
+  };
+  const statusBadge = {
+    'ซ่อมเสร็จสิ้น':'badge-green', 'กำลังซ่อม':'badge-yellow',
+    'รอดำเนินการ':'badge-gray', 'รออะไหล่':'badge-red'
+  };
+
+  // Sort newest first
+  const sorted = [...tickets].sort((a,b) => {
+    const da = new Date(a.Report_Date||0), db = new Date(b.Report_Date||0);
+    return db - da;
+  });
+
+  document.getElementById('hist-list').innerHTML = sorted.map((t,i) => {
+    const sc = statusClass[t.Work_Status]  || 'status-wait';
+    const bc = statusBadge[t.Work_Status]  || 'badge-gray';
+    const dateStr = t.Report_Date ? String(t.Report_Date).substring(0,10) : '-';
+    return `
+    <div class="ticket-card ${sc}" onclick="openTicket(${i})" data-idx="${i}">
+      <div class="ticket-header">
+        <span class="ticket-id">${t.Ticket_ID||'–'}</span>
+        <span class="ticket-date">${dateStr}</span>
+      </div>
+      <div class="ticket-issue">${t.Client_Issue||'ไม่ระบุอาการ'}</div>
+      <div class="ticket-meta">
+        <span class="badge ${bc}" style="font-size:10px">${t.Work_Status||'-'}</span>
+        ${t.Product_Model ? `<span class="badge badge-lime" style="font-size:10px">${t.Product_Model}</span>` : ''}
+        ${t.Asset_Code    ? `<span style="font-size:11px;color:var(--gray-400)">${t.Asset_Code}</span>` : ''}
+        ${t.Technician    ? `<span style="font-size:11px;color:var(--gray-500)"><i class="fas fa-user" style="font-size:10px"></i> ${t.Technician}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // store for modal
+  window._histTickets = sorted;
+}
+
+function openTicket(idx) {
+  const t = window._histTickets?.[idx];
+  if (!t) return;
+  const statusBadge = {
+    'ซ่อมเสร็จสิ้น':'badge-green','กำลังซ่อม':'badge-yellow',
+    'รอดำเนินการ':'badge-gray','รออะไหล่':'badge-red'
+  };
+  const bc = statusBadge[t.Work_Status] || 'badge-gray';
+  document.getElementById('ticket-modal-id').innerHTML =
+    `🎫 ${t.Ticket_ID||'–'} <span class="badge ${bc}" style="margin-left:8px;font-size:11px">${t.Work_Status||'-'}</span>`;
+  document.getElementById('ticket-modal-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><label>วันที่แจ้ง</label><span>${t.Report_Date||'-'}</span></div>
+      <div class="detail-item"><label>วันที่ซ่อม</label><span>${t.Service_Date||'-'}</span></div>
+      <div class="detail-item"><label>Contract No</label><span>${t.Contract_No||'-'}</span></div>
+      <div class="detail-item"><label>รุ่นเครื่อง</label><span>${t.Product_Model||'-'}</span></div>
+      <div class="detail-item"><label>Asset Code</label><span>${t.Asset_Code||'-'}</span></div>
+      <div class="detail-item"><label>ชื่อช่าง</label><span>${t.Technician||'-'}</span></div>
+      <div class="detail-item"><label>สถานะประกัน</label><span>${t.Warranty_Status||'-'}</span></div>
+      <div class="detail-item"><label>SLA (วัน)</label><span>${t.SLA_Days||'-'}</span></div>
+    </div>
+    <div class="detail-full"><label>อาการที่ลูกค้าแจ้ง</label><div class="detail-text">${t.Client_Issue||'-'}</div></div>
+    <div class="detail-full"><label>การดำเนินการแก้ไข</label><div class="detail-text">${t.Action_Taken||'-'}</div></div>
+    ${t.Root_Cause ? `<div class="detail-full"><label>สาเหตุที่แท้จริง</label><div class="detail-text">${t.Root_Cause}</div></div>` : ''}
+    ${t.Spare_Parts_Used ? `<div class="detail-full"><label>อะไหล่ที่ใช้</label><div class="detail-text">${t.Spare_Parts_Used}</div></div>` : ''}
+    ${t.Remark ? `<div class="detail-full"><label>หมายเหตุ</label><div class="detail-text">${t.Remark}</div></div>` : ''}
+  `;
+  document.getElementById('ticket-modal').classList.add('open');
+}
+
+function closeTicketModal() {
+  document.getElementById('ticket-modal').classList.remove('open');
+}
+document.getElementById('ticket-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeTicketModal();
+});
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD (enhanced)
+// ══════════════════════════════════════════════════════════
+async function loadDashboard() {
+  try {
+    const d = await callGas('getDashboardData');
+
+    // KPI stats
+    document.getElementById('stat-total').textContent    = d.total || 0;
+    document.getElementById('stat-pending').textContent  = d.statusCount?.['รอดำเนินการ']  || 0;
+    document.getElementById('stat-progress').textContent = d.statusCount?.['กำลังซ่อม']    || 0;
+    document.getElementById('stat-done').textContent     = d.statusCount?.['ซ่อมเสร็จสิ้น'] || 0;
+    document.getElementById('stat-fixrate').textContent  = (d.fixRate || 0) + '%';
+    document.getElementById('stat-sla').textContent      = (d.slaBreached?.length || 0);
+
+    // Top 5 symptoms
+    const top5 = d.top5Symptoms || [];
+    document.getElementById('top5-list').innerHTML = top5.length
+      ? top5.map((s,i) => {
+          const max = top5[0].count;
+          const pct = Math.round(s.count / max * 100);
+          const colors = ['#1e6b46','#2d8a5a','#3aaa6e','#52c785','#84cc16'];
+          return `<div class="prog-row">
+            <div class="prog-header">
+              <span><span style="color:${colors[i]};font-weight:800">#${i+1}</span> ${s.name}</span>
+              <span>${s.count} ครั้ง</span>
+            </div>
+            <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${colors[i]}"></div></div>
+          </div>`;
+        }).join('')
+      : '<div class="empty-state" style="padding:20px"><i class="fas fa-chart-bar"></i><p>ยังไม่มีข้อมูล</p></div>';
+
+    // Model breakdown
+    if (d.modelCount && Object.keys(d.modelCount).length) {
+      const total = Object.values(d.modelCount).reduce((a,b) => a+b, 0);
+      document.getElementById('model-breakdown').innerHTML = Object.entries(d.modelCount)
+        .map(([m, cnt]) => {
+          const pct = total ? Math.round(cnt/total*100) : 0;
+          return `<div class="prog-row">
+            <div class="prog-header"><span>${m}</span><span>${cnt} งาน (${pct}%)</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+          </div>`;
+        }).join('');
+    } else {
+      document.getElementById('model-breakdown').innerHTML =
+        '<div class="empty-state" style="padding:20px"><i class="fas fa-chart-bar"></i><p>ยังไม่มีข้อมูล</p></div>';
+    }
+
+    // SLA breached table
+    const slaRows = d.slaBreached || [];
+    document.getElementById('sla-tbody').innerHTML = slaRows.length
+      ? slaRows.map(r => `<tr>
+          <td><code style="font-size:11px;color:var(--bio-700)">${r.Ticket_ID||'–'}</code></td>
+          <td>${r.Asset_Code||'-'}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.Client_Issue||'-'}</td>
+          <td><span class="badge badge-yellow">${r.Work_Status||'-'}</span></td>
+          <td><strong style="color:#ef4444">${r.SLA_Days}</strong></td>
+          <td style="color:var(--gray-400);font-size:12px">${String(r.Report_Date||'').substring(0,10)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="6"><div class="empty-state" style="padding:20px"><i class="fas fa-check-circle" style="color:var(--bio-400)"></i><p>ไม่มีงานเกิน SLA</p></div></td></tr>';
+
+    // Charts
+    google.charts.setOnLoadCallback(() => {
+      drawPie('chart-status', d.statusCount, 'สถานะงาน');
+      drawBar('chart-region', d.regionCount, 'Region');
+      drawLine('chart-monthly', d.monthlyCount, 'งานซ่อมรายเดือน');
+    });
+    S.chartsLoaded = true;
+  } catch(e) {
+    toast('โหลด Dashboard ไม่สำเร็จ: ' + e.message, 'error');
+  }
+}
+
+function drawLine(divId, obj, title) {
+  if (!obj || !Object.keys(obj).length) return;
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'เดือน');
+  data.addColumn('number', 'งาน');
+  const sorted = Object.entries(obj).sort((a,b) => a[0].localeCompare(b[0]));
+  sorted.forEach(([k,v]) => data.addRow([k, v]));
+  new google.visualization.LineChart(document.getElementById(divId)).draw(data, {
+    title, titleTextStyle: { fontSize:12, color:'#334155', bold:true },
+    colors: ['#2d8a5a'], legend: { position:'none' },
+    chartArea: { width:'88%', height:'72%' },
+    backgroundColor: 'transparent',
+    hAxis: { textStyle:{fontSize:10} },
+    vAxis: { textStyle:{fontSize:10}, minValue:0 },
+    pointSize: 5, lineWidth: 2
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+loadInit();
+</script>
+</body>
+</html>

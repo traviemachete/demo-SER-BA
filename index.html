@@ -959,7 +959,7 @@ function callGas(fn, ...args) {
 // ══════════════════════════════════════════════════════════
 // MOCK DATA (ใช้ตอน dev / ก่อนต่อ GAS จริง)
 // ══════════════════════════════════════════════════════════
-function mockData(fn) {
+function mockData(fn, args) {
   if (fn === 'getProjects') return [
     { Contract_No:'BA640001', Project_Name:'เทศบาลตำบลนาตาล่วง', Type:'BA100M-YMD-06', Model:'BA100', contact_Tel:'0960053388', Region:'ตรัง' },
     { Contract_No:'BA640001', Project_Name:'ศูนย์การเรียนรู้เกษตรผสมผสาน', Type:'BA100M-YMD-08', Model:'BA100', contact_Tel:'084-7442595', Region:'นครศรีธรรมราช' },

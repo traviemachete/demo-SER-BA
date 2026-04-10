@@ -6,7 +6,7 @@
 const SPREADSHEET_ID = '10SVuCx9hwj91C2B8i9kWtXry-CURkDghy4QvxW7Hh7M';
 
 function doGet(e) {
-  return HtmlService.createHtmlOutputFromFile('Index')
+  return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('BIOAXEL CM Service – ระบบแจ้งซ่อม')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
